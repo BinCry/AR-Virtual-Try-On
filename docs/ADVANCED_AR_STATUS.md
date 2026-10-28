@@ -10,4 +10,4 @@
 
 ## Giới hạn trung thực
 
-Segmentation occlusion chưa được bật: UI báo rõ unavailable thay vì tuyên bố che khuất chính xác. Cloth physics, body deformation, forearm retargeting và fitting chính xác vẫn là R&D tiếp theo. Camera/material acceptance trên Chrome/Edge, Android Chrome và Safari iOS phải thực hiện trên thiết bị thật.
+Segmentation occlusion chưa được bật: UI báo rõ unavailable thay vì tuyên bố che khuất chính xác. Cloth physics, body deformation, forearm retargeting và fitting chính xác vẫn là R&D tiếp theo. Camera/material acceptance trên Chrome/Edge, Android Chrome và Safari iOS phải thực hiện trên thiết bị thật. Frame loop ưu tiên `requestVideoFrameCallback` và chỉ fallback `requestAnimationFrame` ở browser cũ.

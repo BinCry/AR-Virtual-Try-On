@@ -14,8 +14,8 @@ Code review sau đó đã sửa bù crop viewport, giải phóng GPU khi đổi 
 | Pose Landmarker | DONE (code), PARTIAL (physical) | `MediaPipePoseTracker` gọi Tasks Vision thật; chưa có camera thật |
 | 3D torso garment | DONE (code) | Three.js procedural mesh, mapping vai/hông và production build |
 | Garment switching/capture | DONE (code), PARTIAL (browser) | UI handlers thực; browser automation unavailable vì CLI không cài |
-| Skeletal retargeting/GLB | NOT IMPLEMENTED | Không có GLB rig được nghiệm thu |
-| Cloth, body fit, occlusion | NOT IMPLEMENTED | Ngoài phạm vi Level A MVP |
+| Skeletal retargeting/GLB | PARTIAL | GLB demo có rig upper-arm và validation; chưa nghiệm thu camera thật |
+| Cloth, body fit, occlusion | PARTIAL | Fit profile local-only là tham khảo; occlusion/cloth physics chưa triển khai |
 
 ## Hiệu năng và an toàn
 

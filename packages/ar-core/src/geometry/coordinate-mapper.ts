@@ -9,7 +9,6 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   if (![leftShoulder, rightShoulder, leftHip, rightHip].every(Boolean)) return undefined;
   const shoulderWidth = distance(leftShoulder, rightShoulder); const torsoHeight = Math.max(distance(leftShoulder, leftHip), distance(rightShoulder, rightHip));
   const shoulderCenter = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
-  const hipCenter = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
   const roll = Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x);
   const depthDelta = (rightShoulder.z ?? 0) - (leftShoulder.z ?? 0);
   // Keep screen roll gentle: large values are almost always an unstable 2D

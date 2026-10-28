@@ -10,6 +10,14 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   const shoulderWidth = distance(leftShoulder, rightShoulder); const torsoHeight = Math.max(distance(leftShoulder, leftHip), distance(rightShoulder, rightHip));
   const shoulderCenter = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
   const hipCenter = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
-  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - (shoulderCenter.y + hipCenter.y) / 2) * 2, z: -1.2, scaleX: Math.max(0.2, shoulderWidth * 2.65), scaleY: Math.max(0.25, torsoHeight * 2.4), rotationZ: Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x) };
+  const roll = Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x);
+  const depthDelta = (rightShoulder.z ?? 0) - (leftShoulder.z ?? 0);
+  // Keep screen roll gentle: large values are almost always an unstable 2D
+  // landmark during a turn and used to make the entire garment slant away.
+  const rotationZ = Math.max(-.34, Math.min(.34, roll));
+  // MediaPipe's relative Z gives a useful, cheap torso yaw estimate. It is
+  // deliberately bounded so the garment narrows on turns but never vanishes.
+  const rotationY = Math.max(-.72, Math.min(.72, Math.atan2(depthDelta, Math.max(.04, shoulderWidth))));
+  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - (shoulderCenter.y + hipCenter.y) / 2) * 2, z: -1.2, scaleX: Math.max(0.2, shoulderWidth * 2.28), scaleY: Math.max(0.25, torsoHeight * 1.9), rotationZ, rotationY };
 }
 export function mirrorX(x: number): number { return 1 - x; }

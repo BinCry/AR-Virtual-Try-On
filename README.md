@@ -5,7 +5,6 @@
 [![Vite](https://img.shields.io/badge/Vite-7-8B5CF6?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vite.dev/)
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-111827?style=for-the-badge&logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Pose%20AI-00A67E?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker)
-[![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?style=for-the-badge&logo=pnpm&logoColor=white)](https://pnpm.io/)
 
 Demo độc lập cho thử trang phục torso 3D realtime bằng webcam. Pipeline là thật: webcam → MediaPipe Pose Landmarker → EMA + mapping vai/hông → transparent Three.js canvas. Không upload video, không backend, không tự bật camera.
 

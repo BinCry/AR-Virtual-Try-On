@@ -1,6 +1,7 @@
 export type SessionState = 'idle' | 'starting' | 'running' | 'stopping' | 'error';
 export type Landmark = { x: number; y: number; z: number; visibility?: number };
-export type PoseFrame = { landmarks: Landmark[]; timestampMs: number; inferenceMs: number };
+export type PoseFrame = { landmarks: Landmark[]; timestampMs: number; inferenceMs: number; segmentation?: SegmentationMask };
+export type SegmentationMask = { width: number; height: number; data: Uint8Array };
 export type TrackingStatus = { tracked: boolean; reason?: 'no-person' | 'low-confidence'; inferenceMs: number };
 export type GarmentId = 'studio-blazer' | 'blazer' | 'vest' | 'tunic';
 export type RigDefinition = { requiredBones: string[]; torso?: string; leftUpperArm?: string; leftForearm?: string; rightUpperArm?: string; rightForearm?: string };
@@ -10,5 +11,5 @@ export type GarmentTransform = { x: number; y: number; z: number; scaleX: number
 export type FitProfile = { heightCm: number; chestCm: number; waistCm: number; shoulderCm: number };
 export type FitEstimate = { scaleMultiplier: number; confidence: 'reference-only'; notice: string };
 export type PerformanceMetrics = { inferenceMs: number; fps: number; quality: 'high' | 'reduced'; delegate: 'gpu' | 'cpu' };
-export type GarmentLoadStatus = { id: GarmentId; rigged: boolean; validRig: boolean; fallback: boolean; occlusion: 'unavailable' };
+export type GarmentLoadStatus = { id: GarmentId; rigged: boolean; validRig: boolean; fallback: boolean; occlusion: 'basic' | 'unavailable' };
 export type SessionEvent = { type: 'state' | 'tracking' | 'error' | 'metrics' | 'garment-loaded' | 'tracking-lost'; state?: SessionState; status?: TrackingStatus; metrics?: PerformanceMetrics; garment?: GarmentLoadStatus; error?: Error };

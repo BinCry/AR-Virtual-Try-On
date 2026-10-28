@@ -1,5 +1,5 @@
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
-import type { Landmark, PoseFrame, TrackingStatus } from '../types';
+import type { Landmark, PoseFrame, SegmentationMask, TrackingStatus } from '../types';
 import { PoseSmoother } from './pose-smoother';
 
 export interface PoseTracker { initialize(): Promise<void>; detect(video: HTMLVideoElement, timestampMs: number): PoseFrame | undefined; dispose(): void; }
@@ -12,7 +12,7 @@ export class MediaPipePoseTracker implements PoseTracker {
   get activeDelegate(): 'gpu' | 'cpu' { return this.delegate; }
   async initialize(): Promise<void> {
     const vision = await FilesetResolver.forVisionTasks(this.wasmRoot);
-    const options = { runningMode: 'VIDEO' as const, numPoses: 1, minPoseDetectionConfidence: 0.55, minTrackingConfidence: 0.55 };
+    const options = { runningMode: 'VIDEO' as const, numPoses: 1, minPoseDetectionConfidence: 0.55, minTrackingConfidence: 0.55, outputSegmentationMasks: true };
     try { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'GPU' } }); this.delegate = 'gpu'; }
     catch { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'CPU' } }); this.delegate = 'cpu'; }
   }
@@ -21,7 +21,8 @@ export class MediaPipePoseTracker implements PoseTracker {
     this.lastVideoTime = video.currentTime;
     const started = performance.now(); const result = this.landmarker.detectForVideo(video, timestampMs); const landmarks = result.landmarks[0];
     if (!landmarks) return undefined;
-    return { landmarks: this.smoother.smooth(landmarks.map((point): Landmark => ({ x: point.x, y: point.y, z: point.z, visibility: point.visibility }))), timestampMs, inferenceMs: performance.now() - started };
+    const mask = result.segmentationMasks?.[0]; const segmentation: SegmentationMask | undefined = mask ? { width: mask.width, height: mask.height, data: mask.getAsUint8Array().slice() } : undefined; mask?.close();
+    return { landmarks: this.smoother.smooth(landmarks.map((point): Landmark => ({ x: point.x, y: point.y, z: point.z, visibility: point.visibility }))), timestampMs, inferenceMs: performance.now() - started, segmentation };
   }
   dispose(): void { this.landmarker?.close(); this.landmarker = undefined; this.smoother.reset(); }
 }

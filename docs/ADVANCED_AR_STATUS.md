@@ -10,4 +10,4 @@
 
 ## Giới hạn trung thực
 
-Segmentation occlusion chưa được bật: UI báo rõ unavailable thay vì tuyên bố che khuất chính xác. Cloth physics, body deformation, forearm retargeting và fitting chính xác vẫn là R&D tiếp theo. Camera/material acceptance trên Chrome/Edge, Android Chrome và Safari iOS phải thực hiện trên thiết bị thật. Frame loop ưu tiên `requestVideoFrameCallback` và chỉ fallback `requestAnimationFrame` ở browser cũ.
+Occlusion cơ bản dùng segmentation mask của PoseLandmarker: lớp video foreground được dựng trên garment và vùng torso theo vai/hông được khoét để giữ áo hiển thị. Đây không phải che khuất 3D chính xác và có thể sai ở tư thế/ánh sáng khó; fallback tự clear khi không có mask. Cloth physics, body deformation, forearm retargeting và fitting chính xác vẫn là R&D tiếp theo. Camera/material acceptance trên Chrome/Edge, Android Chrome và Safari iOS phải thực hiện trên thiết bị thật. Frame loop ưu tiên `requestVideoFrameCallback` và chỉ fallback `requestAnimationFrame` ở browser cũ.

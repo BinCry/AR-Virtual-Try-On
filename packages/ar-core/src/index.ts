@@ -3,6 +3,7 @@ export * from './calibration/fit-estimator';
 export * from './geometry/coordinate-mapper';
 export * from './garments/catalog';
 export * from './rendering/garment-renderer';
+export * from './rendering/occlusion-renderer';
 export * from './runtime/capability';
 export * from './session/ar-session';
 export * from './tracking/pose-smoother';

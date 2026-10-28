@@ -4,6 +4,8 @@
 
 Ngày 28-10-2026 (Asia/Ho_Chi_Minh): `pnpm typecheck`, `pnpm lint`, `pnpm test` (2/2), `pnpm build` đều PASS. Vite dev server trả HTTP 200 tại `http://127.0.0.1:5173/`.
 
+Code review sau đó đã sửa bù crop viewport, giải phóng GPU khi đổi garment/restart, cancellation cho start/stop, bắt lỗi frame loop và fallback MediaPipe CPU; toàn bộ lệnh trên được chạy lại PASS.
+
 ## Trạng thái tính năng
 
 | Hạng mục | Trạng thái | Bằng chứng |

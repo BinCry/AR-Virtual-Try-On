@@ -7,12 +7,14 @@ export class MediaPipePoseTracker implements PoseTracker {
   private landmarker?: PoseLandmarker;
   private lastVideoTime = -1;
   private readonly smoother = new PoseSmoother();
-  constructor(private readonly modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task') {}
+  private delegate: 'gpu' | 'cpu' = 'gpu';
+  constructor(private readonly modelUrl = new URL('models/pose_landmarker_lite.task', document.baseURI).toString(), private readonly wasmRoot = new URL('models/wasm', document.baseURI).toString()) {}
+  get activeDelegate(): 'gpu' | 'cpu' { return this.delegate; }
   async initialize(): Promise<void> {
-    const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm');
+    const vision = await FilesetResolver.forVisionTasks(this.wasmRoot);
     const options = { runningMode: 'VIDEO' as const, numPoses: 1, minPoseDetectionConfidence: 0.55, minTrackingConfidence: 0.55 };
-    try { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'GPU' } }); }
-    catch { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'CPU' } }); }
+    try { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'GPU' } }); this.delegate = 'gpu'; }
+    catch { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'CPU' } }); this.delegate = 'cpu'; }
   }
   detect(video: HTMLVideoElement, timestampMs: number): PoseFrame | undefined {
     if (!this.landmarker || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.currentTime === this.lastVideoTime) return undefined;

@@ -9,9 +9,10 @@ function App() {
   useEffect(() => () => sessionRef.current?.dispose(), []);
   async function toggleCamera() {
     setError(undefined);
-    if (sessionRef.current && state === 'running') { sessionRef.current.stop(); return; }
+    if (state === 'starting') return;
+    if (sessionRef.current && state === 'running') { sessionRef.current.dispose(); sessionRef.current = null; return; }
     if (!videoRef.current || !canvasRef.current) return;
-    const renderer = new GarmentRenderer(canvasRef.current); const session = new ArSession(videoRef.current, renderer); sessionRef.current = session; session.setGarment(garment);
+    sessionRef.current?.dispose(); const renderer = new GarmentRenderer(canvasRef.current); const session = new ArSession(videoRef.current, renderer); sessionRef.current = session; session.setGarment(garment);
     session.on((event) => { if (event.type === 'state' && event.state) setState(event.state); if (event.type === 'tracking' && event.status) setStatus(event.status); if (event.type === 'error') setError(event.error?.message); });
     try { await session.start(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể khởi động AR.'); }
   }

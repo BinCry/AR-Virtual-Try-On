@@ -10,7 +10,9 @@ export class MediaPipePoseTracker implements PoseTracker {
   constructor(private readonly modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task') {}
   async initialize(): Promise<void> {
     const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm');
-    this.landmarker = await PoseLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath: this.modelUrl, delegate: 'GPU' }, runningMode: 'VIDEO', numPoses: 1, minPoseDetectionConfidence: 0.55, minTrackingConfidence: 0.55 });
+    const options = { runningMode: 'VIDEO' as const, numPoses: 1, minPoseDetectionConfidence: 0.55, minTrackingConfidence: 0.55 };
+    try { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'GPU' } }); }
+    catch { this.landmarker = await PoseLandmarker.createFromOptions(vision, { ...options, baseOptions: { modelAssetPath: this.modelUrl, delegate: 'CPU' } }); }
   }
   detect(video: HTMLVideoElement, timestampMs: number): PoseFrame | undefined {
     if (!this.landmarker || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.currentTime === this.lastVideoTime) return undefined;

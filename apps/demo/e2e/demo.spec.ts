@@ -8,3 +8,14 @@ test('renders local-only AR controls without requesting the camera', async ({ pa
   await expect(page.getByText('Không upload video, ảnh, landmark hoặc số đo.')).toBeVisible();
   expect(external).toEqual([]);
 });
+
+test('loads all locally bundled rigged garments in the no-camera preview', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Xem trước mẫu 3D' }).click();
+  await expect(page.getByText('GLB rigged đã nạp')).toBeVisible();
+  await page.getByRole('button', { name: /CC0 Knit Hoodie/ }).click();
+  await expect(page.getByText('GLB rigged đã nạp')).toBeVisible();
+  await page.getByRole('button', { name: /CC0 Long Trench Coat/ }).click();
+  await expect(page.getByText('GLB rigged đã nạp')).toBeVisible();
+  await expect(page.locator('canvas').first()).toBeVisible();
+});

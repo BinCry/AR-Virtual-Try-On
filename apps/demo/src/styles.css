@@ -27,6 +27,8 @@ aside section { padding: 18px; background: #17212d; border: 1px solid #2c3b4b; b
 .garment { display: flex; align-items: center; gap: 9px; }
 .garment i { width: 15px; height: 15px; border-radius: 50%; }
 .garment.active { border-color: #c6f36e; color: #f2ffe1; }
+.preview { width: 100%; margin-top: 10px; padding: 10px; color: #dff8ff; border: 1px solid #477a91; background: #102d3c; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.preview:hover { border-color: #8ee7ff; background: #163a4c; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .actions button { text-align: center; font-size: 12px; }
 .actions button:disabled { opacity: .4; cursor: not-allowed; }

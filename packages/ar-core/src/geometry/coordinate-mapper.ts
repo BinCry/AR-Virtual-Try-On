@@ -18,6 +18,9 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   // MediaPipe's relative Z gives a useful, cheap torso yaw estimate. It is
   // deliberately bounded so the garment narrows on turns but never vanishes.
   const rotationY = Math.max(-.72, Math.min(.72, Math.atan2(depthDelta, Math.max(.04, shoulderWidth))));
-  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - (shoulderCenter.y + hipCenter.y) / 2) * 2, z: -1.2, scaleX: Math.max(0.2, shoulderWidth * 2.28), scaleY: Math.max(0.25, torsoHeight * 1.9), rotationZ, rotationY };
+  // The renderer's origin is the shoulder midpoint. This makes rotation happen
+  // around the garment's actual hanging point rather than around its visual
+  // centre, which is essential when the wearer turns or leans.
+  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - shoulderCenter.y) * 2, z: -1.2, scaleX: Math.max(.22, shoulderWidth * 2 * 1.45), scaleY: Math.max(.22, torsoHeight * 2 * 1.12), rotationZ, rotationY };
 }
 export function mirrorX(x: number): number { return 1 - x; }

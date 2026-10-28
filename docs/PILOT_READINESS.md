@@ -2,7 +2,7 @@
 
 ## Trạng thái: READY FOR CONTROLLED PILOT
 
-Điều kiện kỹ thuật tự động đã đạt: source sạch, dependencies lockfile, typecheck/lint/test/build PASS, localhost smoke PASS, CDN model/WASM kiểm tra HTTP 200. Không có backend, upload, analytics hoặc lưu biometric data.
+Điều kiện kỹ thuật tự động đã đạt: source sạch, dependencies lockfile, typecheck/lint/unit test/Playwright smoke/build PASS; model/WASM được self-host trong artifact. Không có backend, upload, analytics hoặc lưu biometric data.
 
 ## Điều kiện mở pilot
 

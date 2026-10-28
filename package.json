@@ -1,0 +1,16 @@
+{
+  "name": "studio-ar-lab",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.12.1",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @studio-ar/demo dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm --filter @studio-ar/core build && pnpm --filter @studio-ar/demo typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm --filter @studio-ar/core test",
+    "preview": "pnpm --filter @studio-ar/demo preview"
+  },
+  "devDependencies": { "@eslint/js": "^9.35.0", "@typescript-eslint/eslint-plugin": "^8.43.0", "@typescript-eslint/parser": "^8.43.0", "eslint": "^9.35.0" }
+}

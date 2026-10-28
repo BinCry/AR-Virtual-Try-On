@@ -1,0 +1,15 @@
+{
+  "name": "@studio-ar/demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint src --max-warnings=0",
+    "preview": "vite preview"
+  },
+  "dependencies": { "@studio-ar/core": "workspace:*", "@vitejs/plugin-react": "^5.0.4", "vite": "^7.1.7", "typescript": "~5.9.2", "react": "^19.1.1", "react-dom": "^19.1.1" },
+  "devDependencies": { "@types/react": "^19.1.10", "@types/react-dom": "^19.1.7" }
+}

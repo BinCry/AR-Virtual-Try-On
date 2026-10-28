@@ -8,8 +8,20 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint src --max-warnings=0",
+    "test:e2e": "playwright test",
     "preview": "vite preview"
   },
-  "dependencies": { "@studio-ar/core": "workspace:*", "@vitejs/plugin-react": "^5.0.4", "vite": "^7.1.7", "typescript": "~5.9.2", "react": "^19.1.1", "react-dom": "^19.1.1" },
-  "devDependencies": { "@types/react": "^19.1.10", "@types/react-dom": "^19.1.7" }
+  "dependencies": {
+    "@studio-ar/core": "workspace:*",
+    "@vitejs/plugin-react": "^5.0.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7"
+  }
 }

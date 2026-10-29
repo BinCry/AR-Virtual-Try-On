@@ -1,5 +1,4 @@
 export * from './camera/camera-manager';
-export * from './calibration/fit-estimator';
 export * from './geometry/coordinate-mapper';
 export * from './garments/catalog';
 export * from './rendering/garment-renderer';

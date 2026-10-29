@@ -8,7 +8,7 @@ const panel = (points: Array<[number, number]>, material: THREE.Material, depth 
   return new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: .018, bevelSize: .018, bevelSegments: 2 }), material);
 };
 export class GarmentRenderer {
-  private readonly scene = new THREE.Scene(); private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 10); private readonly renderer: THREE.WebGLRenderer; private garment?: THREE.Group; private loadVersion = 0; private rig?: GarmentDefinition['rig']; private bones = new Map<string, THREE.Bone>(); private readonly boneRest = new Map<string, THREE.Quaternion>(); private readonly boneRestWorld = new Map<string, THREE.Quaternion>(); private readonly boneRestDirection = new Map<string, THREE.Vector3>(); private readonly torsoDeformations = new Map<THREE.BufferAttribute, { original: Float32Array; centerX: number; top: number; bottom: number; ratio: number }>(); private leftSleeve?: THREE.Group; private rightSleeve?: THREE.Group; private displayed?: GarmentTransform; private normalizedHeight = 1;
+  private readonly scene = new THREE.Scene(); private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 10); private readonly renderer: THREE.WebGLRenderer; private garment?: THREE.Group; private loadVersion = 0; private rig?: GarmentDefinition['rig']; private bones = new Map<string, THREE.Bone>(); private readonly boneRest = new Map<string, THREE.Quaternion>(); private readonly boneRestWorld = new Map<string, THREE.Quaternion>(); private readonly boneRestDirection = new Map<string, THREE.Vector3>(); private readonly torsoDeformations = new Map<THREE.BufferAttribute, { original: Float32Array; centerX: number; top: number; bottom: number; width: number; signature: string }>(); private leftSleeve?: THREE.Group; private rightSleeve?: THREE.Group; private displayed?: GarmentTransform; private normalizedHeight = 1;
   constructor(private readonly canvas: HTMLCanvasElement) { this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, premultipliedAlpha: false, preserveDrawingBuffer: true }); this.renderer.setClearColor(0x000000, 0); this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.2; this.camera.position.z = 2; this.scene.add(new THREE.HemisphereLight(0xffffff, 0x24354b, 3.2), new THREE.AmbientLight(0xffffff, .55)); const key = new THREE.DirectionalLight(0xffffff, 3.2); key.position.set(-2, 3, 4); this.scene.add(key); }
   resize(width: number, height: number): void { const dpr = Math.min(window.devicePixelRatio || 1, 2); this.renderer.setPixelRatio(dpr); this.renderer.setSize(width, height, false); }
   private releaseGarment(): void { this.garment?.traverse((node) => { if (node instanceof THREE.Mesh) { node.geometry.dispose(); (Array.isArray(node.material) ? node.material : [node.material]).forEach((material) => material.dispose()); } }); this.garment?.removeFromParent(); this.garment = undefined; this.rig = undefined; this.bones.clear(); this.boneRest.clear(); this.boneRestWorld.clear(); this.boneRestDirection.clear(); this.torsoDeformations.clear(); this.leftSleeve = undefined; this.rightSleeve = undefined; this.displayed = undefined; this.normalizedHeight = 1; }
@@ -69,13 +69,14 @@ export class GarmentRenderer {
       if (!(position instanceof THREE.BufferAttribute)) return;
       const box = node.geometry.boundingBox ?? (node.geometry.computeBoundingBox(), node.geometry.boundingBox);
       if (!box) return;
-      this.torsoDeformations.set(position, { original: new Float32Array(position.array), centerX: (box.min.x + box.max.x) / 2, top: box.max.y, bottom: box.min.y, ratio: 1 });
+      this.torsoDeformations.set(position, { original: new Float32Array(position.array), centerX: (box.min.x + box.max.x) / 2, top: box.max.y, bottom: box.min.y, width: box.max.x - box.min.x, signature: '' });
     });
   }
-  private deformTorso(waistWidthRatio: number, hipWidthRatio: number): void {
+  private deformTorso(waistWidthRatio: number, hipWidthRatio: number, hipOffsetX: number, scaleX: number): void {
     const ratio = Math.max(.76, Math.min(1.42, hipWidthRatio));
     this.torsoDeformations.forEach((entry, position) => {
-      if (Math.abs(entry.ratio - ratio) < .006) return;
+      const signature = `${ratio.toFixed(3)}:${waistWidthRatio.toFixed(3)}:${hipOffsetX.toFixed(3)}:${scaleX.toFixed(3)}`;
+      if (entry.signature === signature) return;
       const range = Math.max(.001, entry.top - entry.bottom); const values = position.array as Float32Array;
       for (let index = 0; index < position.count; index += 1) {
         const offset = index * 3; const y = entry.original[offset + 1];
@@ -83,10 +84,11 @@ export class GarmentRenderer {
         // shoulders remain anchored, preventing the neckline from drifting.
         const lower = Math.max(0, Math.min(1, ((entry.top - y) / range - .18) / .72));
         const waist = Math.max(.7, Math.min(1.28, waistWidthRatio)); const scale = lower < .56 ? 1 + (waist - 1) * (lower / .56) : waist + (ratio - waist) * ((lower - .56) / .44);
-        values[offset] = entry.centerX + (entry.original[offset] - entry.centerX) * scale;
+        const lowerShift = lower * hipOffsetX * entry.width / Math.max(.08, scaleX);
+        values[offset] = entry.centerX + (entry.original[offset] - entry.centerX) * scale + lowerShift;
         values[offset + 1] = y; values[offset + 2] = entry.original[offset + 2];
       }
-      position.needsUpdate = true; entry.ratio = ratio;
+      position.needsUpdate = true; entry.signature = signature;
     });
   }
   private normalizeModel(model: THREE.Group): THREE.Group {
@@ -112,9 +114,9 @@ export class GarmentRenderer {
   update(transform?: GarmentTransform): void {
     if (this.garment && transform) {
       const previous = this.displayed ?? transform; const smoothing = .2;
-      this.displayed = { x: previous.x + (transform.x-previous.x)*smoothing, y: previous.y + (transform.y-previous.y)*smoothing, z: transform.z, scaleX: previous.scaleX + (transform.scaleX-previous.scaleX)*smoothing, scaleY: previous.scaleY + (transform.scaleY-previous.scaleY)*smoothing, waistWidthRatio: (previous.waistWidthRatio ?? 1) + ((transform.waistWidthRatio ?? 1)-(previous.waistWidthRatio ?? 1))*smoothing, hipWidthRatio: (previous.hipWidthRatio ?? 1) + ((transform.hipWidthRatio ?? 1)-(previous.hipWidthRatio ?? 1))*smoothing, rotationZ: previous.rotationZ + (transform.rotationZ-previous.rotationZ)*smoothing, rotationY: previous.rotationY + (transform.rotationY-previous.rotationY)*smoothing };
+      this.displayed = { x: previous.x + (transform.x-previous.x)*smoothing, y: previous.y + (transform.y-previous.y)*smoothing, z: transform.z, scaleX: previous.scaleX + (transform.scaleX-previous.scaleX)*smoothing, scaleY: previous.scaleY + (transform.scaleY-previous.scaleY)*smoothing, waistWidthRatio: (previous.waistWidthRatio ?? 1) + ((transform.waistWidthRatio ?? 1)-(previous.waistWidthRatio ?? 1))*smoothing, hipWidthRatio: (previous.hipWidthRatio ?? 1) + ((transform.hipWidthRatio ?? 1)-(previous.hipWidthRatio ?? 1))*smoothing, hipOffsetX: (previous.hipOffsetX ?? 0) + ((transform.hipOffsetX ?? 0)-(previous.hipOffsetX ?? 0))*smoothing, rotationZ: previous.rotationZ + (transform.rotationZ-previous.rotationZ)*smoothing, rotationY: previous.rotationY + (transform.rotationY-previous.rotationY)*smoothing };
       const stable = this.displayed; const coverage = this.rig?.torso ? (this.garment.userData.garmentId === 'tunic' ? 2.05 : 1.08) : 1;
-      this.deformTorso(stable.waistWidthRatio ?? 1, stable.hipWidthRatio ?? 1);
+      this.deformTorso(stable.waistWidthRatio ?? 1, stable.hipWidthRatio ?? 1, stable.hipOffsetX ?? 0, stable.scaleX);
       this.garment.position.set(stable.x, stable.y, stable.z); this.garment.scale.set(stable.scaleX, stable.scaleY * coverage / this.normalizedHeight, Math.max(.62, Math.cos(stable.rotationY))); this.garment.rotation.set(0, stable.rotationY, -stable.rotationZ); this.garment.visible = true;
     } else if (this.garment) { this.garment.visible = false; this.displayed = undefined; }
     this.renderer.render(this.scene, this.camera);

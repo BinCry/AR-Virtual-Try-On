@@ -19,6 +19,7 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   if (![leftShoulder, rightShoulder, leftHip, rightHip].every(Boolean)) return undefined;
   const shoulderWidth = distance(leftShoulder, rightShoulder); const hipWidth = distance(leftHip, rightHip); const torsoHeight = (distance(leftShoulder, leftHip) + distance(rightShoulder, rightHip)) / 2;
   const shoulderCenter = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
+  const hipCenter = { x: (leftHip.x + rightHip.x) / 2, y: (leftHip.y + rightHip.y) / 2 };
   const roll = Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x);
   const depthDelta = (rightShoulder.z ?? 0) - (leftShoulder.z ?? 0);
   // Keep screen roll gentle: large values are almost always an unstable 2D
@@ -37,6 +38,6 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   // float away from the shoulders.
   const hipWidthRatio = Math.max(.76, Math.min(1.42, hipGarmentWidth / Math.max(.04, shoulderGarmentWidth)));
   const waistWidthRatio = Math.max(.7, Math.min(1.28, ((contour?.waistWidth ?? shoulderWidth * .9) * 1.24) / Math.max(.04, shoulderGarmentWidth)));
-  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - shoulderCenter.y) * 2, z: -1.2, scaleX: Math.max(.22, shoulderGarmentWidth * 2), scaleY: Math.max(.22, torsoHeight * 2 * 1.12), waistWidthRatio, hipWidthRatio, rotationZ, rotationY };
+  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - shoulderCenter.y) * 2, z: -1.2, scaleX: Math.max(.22, shoulderGarmentWidth * 2), scaleY: Math.max(.22, torsoHeight * 2 * 1.12), waistWidthRatio, hipWidthRatio, hipOffsetX: (hipCenter.x - shoulderCenter.x) * 2, rotationZ, rotationY };
 }
 export function mirrorX(x: number): number { return 1 - x; }

@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; don't cancel one mid-flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Match the local npm (11.x) that writes the lockfile; Node 20 is
+          # also deprecated on the runners now.
+          node-version: 24
+          cache: npm
+
+      # `npm install`, not `npm ci`: the lockfile keeps drifting on the
+      # @rolldown/binding-wasm32-wasi → @napi-rs/wasm-runtime → @emnapi/*
+      # chain because those resolve to different patch versions on the
+      # Linux runner than on the dev box, and `npm ci` hard-fails on that
+      # ("Missing: @emnapi/core@x from lock file"). This is a static-site
+      # deploy — install reconciling the lock is an acceptable trade for it
+      # not breaking every time a transitive wasm shim publishes a patch.
+      - run: npm install --no-audit --no-fund
+
+      # packages/*/dist is gitignored (build output, not source) — the app's
+      # own tsc resolves @practics/tryon-core et al. via their package.json
+      # "types"/"exports" pointing at dist, so those packages must be built
+      # before the app, or a fresh checkout fails with "Cannot find module".
+      - run: npm run build --workspaces --if-present
+
+      # Models and test photos are gitignored (fetched binaries, not source —
+      # unlike the garment PNGs/catalog, which are committed) — fetch them
+      # before building, or the deployed site ships with no models.
+      - run: npm run fetch-models
+      # Test photos are Wikimedia-hosted and just back the "quick load" demo
+      # buttons — not required for the app to function (upload/webcam still
+      # work). Wikimedia rate-limits shared CI IPs (429s); don't fail the
+      # whole deploy over a photo-fetch hiccup that the script already retries.
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

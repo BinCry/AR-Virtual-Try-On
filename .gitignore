@@ -1,9 +1,11 @@
 node_modules/
 dist/
-.pnpm-store/
-coverage/
-playwright-report/
-test-results/
-.env
-.tmp/
-.cache/
+*.local
+.DS_Store
+CLAUDE.md
+.claude/
+
+# Fetched binaries: regenerate with `npm run fetch-models`.
+public/models/*.tflite
+# Synced from node_modules by tools/copy-litert-wasm.mjs.
+public/litert-wasm/

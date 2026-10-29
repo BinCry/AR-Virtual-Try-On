@@ -1,16 +1,37 @@
 {
-  "name": "local-virtual-try-on",
+  "name": "try-on",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@10.12.1",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "pnpm --filter @virtual-try-on/demo dev",
-    "build": "pnpm --filter @virtual-try-on/demo build",
-    "typecheck": "pnpm --filter @virtual-try-on/demo typecheck",
-    "lint": "pnpm --filter @virtual-try-on/demo lint",
-    "test": "pnpm --filter @virtual-try-on/demo test",
-    "preview": "pnpm --filter @virtual-try-on/demo preview"
+    "postinstall": "node tools/copy-litert-wasm.mjs",
+    "predev": "node tools/copy-litert-wasm.mjs",
+    "prebuild": "node tools/copy-litert-wasm.mjs",
+    "dev": "vite",
+    "build": "npm run build --workspaces --if-present && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "fetch-models": "node tools/fetch-models.mjs"
   },
-  "devDependencies": { "@eslint/js": "^9.35.0", "@typescript-eslint/eslint-plugin": "^8.43.0", "@typescript-eslint/parser": "^8.43.0", "eslint": "^9.35.0" }
+  "dependencies": {
+    "@mcp-b/global": "^5.0.1",
+    "@mcp-b/react-webmcp": "^5.0.1",
+    "@practics/tryon-core": "^0.2.0",
+    "litert-react": "^0.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "thin-plate-spline": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@webgpu/types": "^0.1.71",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
+  }
 }

@@ -35,7 +35,7 @@ test('loads all locally bundled rigged garments in the no-camera preview', async
   expect(errors).toEqual([]);
 }); */
 
-test('renders raised-arm and turned-body rig fixtures without runtime errors', async ({ page }) => {
+test('renders raised-arm and turned-body rig fixtures without runtime errors', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   for (const pose of ['arms-up', 'turn']) {
@@ -43,6 +43,20 @@ test('renders raised-arm and turned-body rig fixtures without runtime errors', a
     await page.locator('button.preview').click();
     await expect(page.locator('canvas.overlay').first()).toBeVisible();
     expect(await page.locator('canvas.overlay').first().evaluate((canvas) => canvas.width)).toBeGreaterThan(0);
+    for (const garment of await page.locator('button.garment').all()) {
+      await garment.click();
+      await page.waitForTimeout(350);
+      const opaquePixels = await page.locator('canvas.overlay').first().evaluate((canvas) => {
+        const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+        if (!gl) return 0;
+        const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+        gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        let count = 0; for (let index = 3; index < pixels.length; index += 4) if (pixels[index] > 8) count += 1;
+        return count;
+      });
+      expect(opaquePixels).toBeGreaterThan(200);
+    }
+    await page.locator('canvas.overlay').first().screenshot({ path: testInfo.outputPath(`${pose}.png`) });
   }
   expect(errors).toEqual([]);
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapTorsoToGarment, mirrorX, PoseSmoother } from '../src';
+import { mapTorsoToGarment, measureTorsoContour, mirrorX, PoseSmoother } from '../src';
 describe('PoseSmoother', () => { it('applies EMA to noisy landmarks', () => { const smoother = new PoseSmoother(.5); smoother.smooth([{ x: 0, y: 0, z: 0 }]); expect(smoother.smooth([{ x: 1, y: 1, z: 1 }])[0]).toMatchObject({ x: .5, y: .5, z: .5 }); }); });
 describe('coordinate mapping', () => { it('maps a valid torso and mirrors x', () => { const points = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0 })); points[11] = { x:.3,y:.3,z:0 }; points[12] = { x:.7,y:.3,z:0 }; points[23] = { x:.35,y:.7,z:0 }; points[24] = { x:.65,y:.7,z:0 }; expect(mapTorsoToGarment(points)).toMatchObject({ x:0, scaleX:expect.any(Number) }); expect(mirrorX(.2)).toBe(.8); }); });
 describe('shoulder anchored garment mapping', () => {
@@ -20,11 +20,14 @@ describe('shoulder anchored garment mapping', () => {
     expect(Math.abs(transform?.rotationZ ?? 1)).toBeLessThanOrEqual(.34);
     expect(Math.abs(transform?.rotationY ?? 1)).toBeLessThanOrEqual(.72);
   });
-  it('expands the torso envelope when hips are wider than shoulders', () => {
+  it('deforms lower torso independently when hips are wider than shoulders', () => {
     const points = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0 }));
     points[11] = { x: .42, y: .3, z: 0 }; points[12] = { x: .58, y: .3, z: 0 };
     points[23] = { x: .2, y: .72, z: 0 }; points[24] = { x: .8, y: .72, z: 0 };
-    expect(mapTorsoToGarment(points)?.scaleX).toBeGreaterThan(1.5);
+    const transform = mapTorsoToGarment(points);
+    expect(transform?.scaleX).toBeLessThan(.5);
+    expect(transform?.hipWidthRatio).toBeCloseTo(1.42);
   });
 });
 describe('cover mapping', () => { it('compensates for a 16:9 video cropped into a 4:5 viewport', () => { const points = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0 })); points[11] = { x:.2,y:.3,z:0 }; points[12] = { x:.8,y:.3,z:0 }; points[23] = { x:.25,y:.7,z:0 }; points[24] = { x:.75,y:.7,z:0 }; const transform = mapTorsoToGarment(points, { videoWidth: 1600, videoHeight: 900, viewportWidth: 800, viewportHeight: 1000 }); expect(transform?.x).toBeCloseTo(0); expect(transform?.scaleX).toBeGreaterThan(.2); }); });
+describe('silhouette contour', () => { it('measures waist and hip widths from the local segmentation mask', () => { const points = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0 })); points[11] = { x:.35,y:.2,z:0 }; points[12] = { x:.65,y:.2,z:0 }; points[23] = { x:.3,y:.8,z:0 }; points[24] = { x:.7,y:.8,z:0 }; const width = 100; const height = 100; const data = new Uint8Array(width * height); for (let y = 20; y < 95; y += 1) { const half = y < 55 ? 14 : 25; for (let x = 50-half; x <= 50+half; x += 1) data[y * width + x] = 255; } const contour = measureTorsoContour(points, { width, height, data }); expect(contour?.waistWidth).toBeLessThan(contour?.hipWidth ?? 0); expect(contour?.hipWidth).toBeGreaterThan(.4); }); });

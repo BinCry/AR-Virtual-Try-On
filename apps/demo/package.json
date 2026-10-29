@@ -1,5 +1,5 @@
 {
-  "name": "@studio-ar/demo",
+  "name": "@virtual-try-on/demo",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,11 +8,11 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint src --max-warnings=0",
-    "test:e2e": "playwright test",
+    "test": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@studio-ar/core": "workspace:*",
+    "@mediapipe/tasks-vision": "^0.10.32",
     "@vitejs/plugin-react": "^5.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

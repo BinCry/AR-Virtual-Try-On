@@ -1,37 +1,177 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArSession, GARMENTS, GarmentRenderer, getCapabilityReport, type GarmentDefinition, type PerformanceMetrics, type SessionState, type TrackingStatus } from '@studio-ar/core';
+import { FilesetResolver, PoseLandmarker, type NormalizedLandmark } from '@mediapipe/tasks-vision';
 import './styles.css';
-type PreviewPose = 'neutral' | 'arms-up' | 'turn';
-const previewLandmarks = (pose: PreviewPose) => {
-  const points = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0, visibility: 1 }));
-  // Deterministic no-camera fixture for the hidden visual QA URL. It exercises
-  // both arm chains and a torso turn without collecting user data.
-  Object.assign(points[11], { x: .35, y: .34, z: pose === 'turn' ? -.18 : 0 }); Object.assign(points[12], { x: .65, y: .34, z: pose === 'turn' ? .18 : 0 });
-  Object.assign(points[23], { x: .39, y: .72, z: pose === 'turn' ? -.09 : 0 }); Object.assign(points[24], { x: .61, y: .72, z: pose === 'turn' ? .09 : 0 });
-  if (pose === 'arms-up') { Object.assign(points[13], { x: .22, y: .18 }); Object.assign(points[15], { x: .17, y: .04 }); Object.assign(points[14], { x: .78, y: .18 }); Object.assign(points[16], { x: .83, y: .04 }); }
-  else { Object.assign(points[13], { x: .27, y: .49 }); Object.assign(points[15], { x: .24, y: .65 }); Object.assign(points[14], { x: .73, y: .49 }); Object.assign(points[16], { x: .76, y: .65 }); }
-  return points;
-};
+
+type SessionStatus = 'idle' | 'starting' | 'running' | 'error';
+type Point = Pick<NormalizedLandmark, 'x' | 'y' | 'visibility'>;
+const modelPath = new URL('models/pose_landmarker_lite.task', document.baseURI).toString();
+const wasmPath = new URL('models/wasm', document.baseURI).toString();
+const garments = [
+  { id: 'bomber', label: 'Bomber xanh', image: '/garments/blue-bomber.png' },
+  { id: 'trench', label: 'Trench coat', image: '/garments/camel-trench.png' },
+  { id: 'knit', label: 'Áo len xanh rêu', image: '/garments/green-knit.png' },
+] as const;
+
 function App() {
-  const videoRef = useRef<HTMLVideoElement>(null); const canvasRef = useRef<HTMLCanvasElement>(null); const occlusionRef = useRef<HTMLCanvasElement>(null); const sessionRef = useRef<ArSession | null>(null); const previewRef = useRef<GarmentRenderer | null>(null);
-  const [state, setState] = useState<SessionState>('idle'); const [status, setStatus] = useState<TrackingStatus>({ tracked: false, inferenceMs: 0 }); const [garment, setGarment] = useState<GarmentDefinition>(GARMENTS[0]); const [metrics, setMetrics] = useState<PerformanceMetrics>(); const [assetStatus, setAssetStatus] = useState('Chưa tải asset'); const [debug, setDebug] = useState(false); const [preview, setPreview] = useState(false); const [error, setError] = useState<string>(); const capability = getCapabilityReport();
-  useEffect(() => () => { sessionRef.current?.dispose(); previewRef.current?.dispose(); }, []);
-  useEffect(() => {
-    const pose = new URLSearchParams(window.location.search).get('pose');
-    if (!preview || !previewRef.current || (pose !== 'neutral' && pose !== 'arms-up' && pose !== 'turn')) return;
-    // This URL-only fixture makes arm-up and turn regression checks visual and
-    // reproducible; normal visitors never enter this code path.
-    for (let frame = 0; frame < 18; frame += 1) previewRef.current.retarget(previewLandmarks(pose));
-    previewRef.current.update({ x: 0, y: .66, z: -1.2, scaleX: .82, scaleY: .82, hipWidthRatio: pose === 'arms-up' ? 1.35 : .82, rotationZ: 0, rotationY: pose === 'turn' ? .55 : 0 });
-  }, [preview, garment]);
-  async function toggleCamera() { setError(undefined); if (!capability.secureContext || !capability.camera) { setError(capability.message); return; } if (state === 'starting') return; if (sessionRef.current && state === 'running') { sessionRef.current.dispose(); sessionRef.current = null; return; } if (!videoRef.current || !canvasRef.current) return; previewRef.current?.dispose(); previewRef.current = null; setPreview(false); sessionRef.current?.dispose(); const session = new ArSession(videoRef.current, new GarmentRenderer(canvasRef.current), occlusionRef.current ?? undefined); sessionRef.current = session; session.on((event) => { if (event.type === 'state' && event.state) setState(event.state); if (event.type === 'tracking' && event.status) setStatus(event.status); if (event.type === 'metrics' && event.metrics) setMetrics(event.metrics); if (event.type === 'garment-loaded' && event.garment) setAssetStatus(event.garment.validRig ? 'GLB rigged + occlusion cơ bản' : event.garment.fallback ? 'Fallback procedural' : 'Garment 3D + occlusion cơ bản'); if (event.type === 'error') setError(event.error?.message); }); try { await session.setGarment(garment); await session.start(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể khởi động AR.'); } }
-  async function chooseGarment(next: GarmentDefinition) { setGarment(next); await sessionRef.current?.setGarment(next); if (previewRef.current && canvasRef.current) { await previewRef.current.setGarment(next); const pose = new URLSearchParams(window.location.search).get('pose'); if (pose === 'neutral' || pose === 'arms-up' || pose === 'turn') for (let frame = 0; frame < 18; frame += 1) previewRef.current.retarget(previewLandmarks(pose)); previewRef.current.update({ x: 0, y: .66, z: -1.2, scaleX: .82, scaleY: .82, waistWidthRatio: pose === 'arms-up' ? .88 : 1.08, hipWidthRatio: pose === 'arms-up' ? 1.35 : .82, rotationZ: 0, rotationY: pose === 'turn' ? .55 : 0 }); } }
-  async function previewGarment() { if (!canvasRef.current || state === 'running') return; setError(undefined); previewRef.current?.dispose(); const renderer = new GarmentRenderer(canvasRef.current); previewRef.current = renderer; const box = canvasRef.current.parentElement?.getBoundingClientRect(); renderer.resize(box?.width ?? 800, box?.height ?? 600); try { const result = await renderer.setGarment(garment); renderer.update({ x: 0, y: .66, z: -1.2, scaleX: .82, scaleY: .82, rotationZ: 0, rotationY: 0 }); setAssetStatus(result.validRig ? 'GLB rigged đã nạp' : 'GLB đã nạp'); setPreview(true); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể nạp mẫu 3D.'); } }
-  function capture() { const video = videoRef.current; const overlay = canvasRef.current; const occlusion = occlusionRef.current; if (!video || !overlay || state !== 'running') return; const output = document.createElement('canvas'); output.width = video.videoWidth; output.height = video.videoHeight; const context = output.getContext('2d'); if (!context) return; context.translate(output.width, 0); context.scale(-1, 1); context.drawImage(video, 0, 0, output.width, output.height); context.drawImage(overlay, 0, 0, output.width, output.height); if (occlusion) context.drawImage(occlusion, 0, 0, output.width, output.height); const link = document.createElement('a'); link.download = `studio-ar-${Date.now()}.png`; link.href = output.toDataURL('image/png'); link.click(); }
-  return <main><header><div><p className="eyebrow">STUDIO AR LAB / LOCAL R&D</p><h1>Phòng thử đồ 3D</h1></div><div className={`signal ${state}`}>{state === 'running' ? 'LIVE' : state.toUpperCase()}</div></header>
-    {!capability.message ? null : <p className="error">{capability.message}</p>}<section className="workbench"><div className="stage"><video ref={videoRef} muted playsInline className="mirrored"/><canvas ref={canvasRef} className="overlay mirrored"/><canvas ref={occlusionRef} className="overlay mirrored"/>{state !== 'running' && !preview && <div className="empty"><strong>Camera chưa bật</strong><span>Xử lý hoàn toàn cục bộ trong trình duyệt.</span></div>}{debug && <div className="debug">{status.tracked ? 'Pose tracked' : 'Đang tìm pose'} · {metrics?.fps.toFixed(0) ?? '–'} FPS · {metrics?.inferenceMs.toFixed(1) ?? '–'} ms</div>}</div>
-      <aside><section><p className="label">CAMERA & TRACKING</p><button className="primary" onClick={toggleCamera} disabled={state === 'starting'}>{state === 'running' ? 'Tắt camera' : state === 'starting' ? 'Đang khởi động…' : 'Bật camera'}</button><p className="hint" data-testid="asset-status">{assetStatus} · Occlusion foreground khi camera đang chạy.</p>{error && <p className="error">{error}</p>}</section><section><p className="label">TRANG PHỤC</p><div className="garments">{GARMENTS.map((item) => <button className={item.id === garment.id ? 'garment active' : 'garment'} key={item.id} onClick={() => void chooseGarment(item)}><i style={{ background: item.color }}/><span>{item.label}<small>{item.kind}</small></span></button>)}</div><button className="preview" onClick={() => void previewGarment()}>Xem trước mẫu 3D</button></section><section className="auto-fit"><p className="label">AUTO FIT</p><p className="hint">Tự bám theo vai, hông, chiều dài torso và hướng xoay của cơ thể. Không cần nhập số đo.</p></section><section className="actions"><button onClick={() => setDebug((value) => !value)}>{debug ? 'Ẩn chẩn đoán' : 'Hiện chẩn đoán'}</button><button onClick={capture} disabled={state !== 'running'}>Chụp kết quả</button></section><p className="privacy">Không upload video, ảnh, landmark hoặc số đo. Ảnh chỉ được tạo khi bạn bấm chụp.</p></aside></section>
-    <footer><span>Pose: {status.tracked ? 'đã nhận diện' : 'đang chờ'} · {metrics?.delegate.toUpperCase() ?? '–'}</span><span>Chrome/Edge, Android Chrome, Safari iOS cần nghiệm thu vật lý.</span></footer></main>;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const trackerRef = useRef<PoseLandmarker | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const garmentImageRef = useRef<HTMLImageElement | null>(null);
+  const smoothedPoseRef = useRef<Point[] | null>(null);
+  const [status, setStatus] = useState<SessionStatus>('idle');
+  const [selectedGarment, setSelectedGarment] = useState<(typeof garments)[number]['id']>('bomber');
+  const [tracked, setTracked] = useState(false);
+  const [message, setMessage] = useState('Tải ảnh PNG/WebP nền trong suốt, sau đó bật camera.');
+
+  function disposeTracking() {
+    if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
+    animationRef.current = null;
+    trackerRef.current?.close();
+    trackerRef.current = null;
+    smoothedPoseRef.current = null;
+  }
+
+  function stopCamera() {
+    disposeTracking();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setTracked(false);
+    setStatus('idle');
+    setMessage('Camera đã tắt. Không có ảnh hoặc video nào rời khỏi thiết bị.');
+  }
+
+  useEffect(() => () => {
+    disposeTracking();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  function selectGarment(garment: (typeof garments)[number]) {
+    const image = new Image();
+    image.onload = () => {
+      garmentImageRef.current = image;
+      setSelectedGarment(garment.id);
+      setMessage(`Đã chọn ${garment.label}. Bật camera để thử đồ.`);
+    };
+    image.onerror = () => { setStatus('error'); setMessage('Không thể tải mẫu trang phục này.'); };
+    image.src = garment.image;
+  }
+
+  useEffect(() => { selectGarment(garments[0]); }, []);
+
+  function drawFrame() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const tracker = trackerRef.current;
+    if (!video || !canvas || !tracker || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      animationRef.current = requestAnimationFrame(drawFrame);
+      return;
+    }
+    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.save();
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const result = tracker.detectForVideo(video, performance.now());
+    const landmarks = result.landmarks[0] as Point[] | undefined;
+    const keypoints = landmarks ? [landmarks[11], landmarks[12], landmarks[23], landmarks[24]] : [];
+    const isTracked = keypoints.length === 4 && keypoints.every((point) => (point.visibility ?? 0) > .45);
+    setTracked((previous) => previous === isTracked ? previous : isTracked);
+    if (isTracked && landmarks && garmentImageRef.current) {
+      const prior = smoothedPoseRef.current;
+      const pose = landmarks.map((point, index) => {
+        const old = prior?.[index];
+        return old ? { x: old.x + (point.x - old.x) * .35, y: old.y + (point.y - old.y) * .35, visibility: point.visibility } : point;
+      });
+      smoothedPoseRef.current = pose;
+      const leftShoulder = pose[11];
+      const rightShoulder = pose[12];
+      const leftHip = pose[23];
+      const rightHip = pose[24];
+      const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2 * canvas.width;
+      const shoulderCenterY = (leftShoulder.y + rightShoulder.y) / 2 * canvas.height;
+      const hipCenterY = (leftHip.y + rightHip.y) / 2 * canvas.height;
+      const shoulderWidth = Math.abs(rightShoulder.x - leftShoulder.x) * canvas.width;
+      const torsoHeight = Math.max(hipCenterY - shoulderCenterY, shoulderWidth * .85);
+      const image = garmentImageRef.current;
+      const width = shoulderWidth * 1.9;
+      const height = torsoHeight * 1.5;
+      const collarY = shoulderCenterY - torsoHeight * .30;
+      const rawRotation = Math.atan2((rightShoulder.y - leftShoulder.y) * canvas.height, (rightShoulder.x - leftShoulder.x) * canvas.width);
+      const rotation = rawRotation > Math.PI / 2 ? rawRotation - Math.PI : rawRotation < -Math.PI / 2 ? rawRotation + Math.PI : rawRotation;
+      context.save();
+      context.translate(shoulderCenterX, collarY + height / 2);
+      context.rotate(rotation);
+      context.drawImage(image, -width / 2, -height / 2, width, height);
+      context.restore();
+    } else if (!isTracked) smoothedPoseRef.current = null;
+    context.restore();
+    animationRef.current = requestAnimationFrame(drawFrame);
+  }
+
+  async function startCamera() {
+    if (!garmentImageRef.current) {
+      setStatus('error');
+      setMessage('Đang tải mẫu trang phục, hãy thử lại ngay sau một giây.');
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus('error');
+      setMessage('Trình duyệt này không hỗ trợ camera. Hãy dùng Chrome, Edge hoặc Safari mới trên HTTPS/localhost.');
+      return;
+    }
+    stopCamera();
+    setStatus('starting');
+    setMessage('Đang mở camera và tải bộ nhận diện dáng người cục bộ…');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'user' } });
+      const vision = await FilesetResolver.forVisionTasks(wasmPath);
+      const tracker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: modelPath, delegate: 'GPU' },
+        runningMode: 'VIDEO', numPoses: 1, minPoseDetectionConfidence: .55, minTrackingConfidence: .55,
+      });
+      if (!videoRef.current) { stream.getTracks().forEach((track) => track.stop()); tracker.close(); return; }
+      streamRef.current = stream;
+      trackerRef.current = tracker;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setStatus('running');
+      setMessage('Đang thử đồ cục bộ trên thiết bị. Hãy đứng trọn phần thân trên trong khung hình.');
+      drawFrame();
+    } catch (error) {
+      disposeTracking();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Không thể khởi động camera hoặc pose tracking.');
+    }
+  }
+
+  function capture() {
+    const canvas = canvasRef.current;
+    if (!canvas || status !== 'running') return;
+    const link = document.createElement('a');
+    link.download = `local-try-on-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  return <main>
+    <header><div><p className="eyebrow">LOCAL / MEDIAPIPE + CANVAS</p><h1>Phòng thử đồ miễn phí</h1></div><div className={`signal ${status}`}>{status === 'running' ? 'LIVE' : status.toUpperCase()}</div></header>
+    <section className="workbench"><section className="stage" aria-label="Camera thử đồ cục bộ"><video ref={videoRef} muted playsInline className="source-video"/><canvas ref={canvasRef} className="output"/>{status !== 'running' && <div className="empty"><strong>{status === 'starting' ? 'Đang khởi động…' : 'Sẵn sàng thử đồ'}</strong><span>Camera và trang phục sẽ được xử lý ngay trên thiết bị.</span></div>}{status === 'running' && <div className="tracking">{tracked ? 'Pose tracked' : 'Đang tìm phần thân trên'}</div>}</section>
+      <aside><section><p className="label">CHỌN TRANG PHỤC</p><div className="garments">{garments.map((garment) => <button className={selectedGarment === garment.id ? 'garment active' : 'garment'} key={garment.id} onClick={() => selectGarment(garment)}><img src={garment.image} alt=""/><span>{garment.label}</span></button>)}</div><p className="hint">Ba mẫu có sẵn đã được đóng gói cùng app, không cần upload ảnh.</p></section>
+        <section><p className="label">CAMERA & POSE</p><button className="primary" onClick={() => void startCamera()} disabled={status === 'starting'}>{status === 'starting' ? 'Đang khởi động…' : status === 'running' ? 'Khởi động lại camera' : 'Bật camera'}</button><button className="secondary" onClick={stopCamera} disabled={status !== 'running' && status !== 'starting'}>Tắt camera</button><p className={`hint ${status === 'error' ? 'error' : ''}`} role="status">{message}</p></section>
+        <section className="actions"><button onClick={capture} disabled={status !== 'running'}>Lưu ảnh kết quả</button></section><p className="privacy">Không có API key, backend, upload hay phí theo giây. Video, pose và ảnh trang phục chỉ được xử lý trong trình duyệt của bạn.</p></aside>
+    </section><footer><span>2D overlay theo vai và hông, không phải mô phỏng vải hay đo size.</span><span>Camera yêu cầu localhost hoặc HTTPS.</span></footer>
+  </main>;
 }
+
 createRoot(document.getElementById('root')!).render(<App />);

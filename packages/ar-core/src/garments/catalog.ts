@@ -1,6 +1,0 @@
-import type { GarmentDefinition } from '../types';
-export const GARMENTS: GarmentDefinition[] = [
-  { id: 'blazer', label: 'CC0 Tailored Jacket', color: '#315d9c', accent: '#f2c75c', license: 'provided', kind: 'rigged-glb', modelUrl: 'models/garments/cc0-jacket.glb', rig: { requiredBones: ['spine_03', 'upperarm_l', 'upperarm_r'], torso: 'spine_03', leftUpperArm: 'upperarm_l', leftForearm: 'lowerarm_l', rightUpperArm: 'upperarm_r', rightForearm: 'lowerarm_r' } },
-  { id: 'vest', label: 'CC0 Knit Hoodie', color: '#9e3852', accent: '#f6d48c', license: 'provided', kind: 'rigged-glb', modelUrl: 'models/garments/cc0-hoodie.glb', rig: { requiredBones: ['spine_03', 'upperarm_l', 'upperarm_r'], torso: 'spine_03', leftUpperArm: 'upperarm_l', leftForearm: 'lowerarm_l', rightUpperArm: 'upperarm_r', rightForearm: 'lowerarm_r' } },
-  { id: 'tunic', label: 'CC0 Long Trench Coat', color: '#168472', accent: '#d6f1dc', license: 'provided', kind: 'rigged-glb', modelUrl: 'models/garments/cc0-trenchcoat.glb', rig: { requiredBones: ['spine_03', 'upperarm_l', 'upperarm_r'], torso: 'spine_03', leftUpperArm: 'upperarm_l', leftForearm: 'lowerarm_l', rightUpperArm: 'upperarm_r', rightForearm: 'lowerarm_r' } },
-];

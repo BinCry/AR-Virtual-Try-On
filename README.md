@@ -1,35 +1,46 @@
-# Studio AR Lab
+# Local Virtual Try-On
 
-[![React 19](https://img.shields.io/badge/React-19-149ECA?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-7-8B5CF6?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vite.dev/)
-[![Three.js](https://img.shields.io/badge/Three.js-WebGL-111827?style=for-the-badge&logo=threedotjs&logoColor=white)](https://threejs.org/)
-[![MediaPipe](https://img.shields.io/badge/MediaPipe-Pose%20AI-00A67E?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker)
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-149ECA?style=for-the-badge&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 5.9" />
+  <img src="https://img.shields.io/badge/Vite-7-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 7" />
+  <img src="https://img.shields.io/badge/MediaPipe-Pose-00A67E?style=for-the-badge&logo=google&logoColor=white" alt="MediaPipe Pose" />
+  <img src="https://img.shields.io/badge/Canvas-2D-F57C00?style=for-the-badge&logo=html5&logoColor=white" alt="Canvas 2D" />
+</p>
 
-Demo độc lập cho thử trang phục torso 3D realtime bằng webcam. Pipeline là thật: webcam → MediaPipe Pose Landmarker → EMA + mapping vai/hông → transparent Three.js canvas. Không upload video, không backend, không tự bật camera.
+Demo thử trang phục realtime, chạy hoàn toàn trong trình duyệt: webcam →
+MediaPipe Pose → Canvas 2D. Không dùng API key, backend, tài khoản cloud hay
+phí theo thời gian; camera và ảnh trang phục không được upload khỏi thiết bị.
 
-## Chạy
+## Chạy dự án
+
+Yêu cầu Node.js 20+ và pnpm 10+.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Mở URL Vite in ra (thường `http://localhost:5173`), bấm **Bật camera**. Camera chỉ hoạt động trên localhost/HTTPS.
+Mở URL Vite in ra (thường là `http://localhost:5173`). Chọn một trong ba trang
+phục không có nón có sẵn, rồi bấm **Bật camera**. Ứng dụng dùng các mốc vai và
+hông để co giãn, đặt ảnh áo lên video webcam; dừng camera khi bấm **Tắt camera**
+hoặc rời trang.
 
-## Chất lượng
+## Lưu ý về chất lượng
+
+Đây là overlay 2D realtime, không phải AI tạo video hay mô phỏng vải. Ba mẫu
+đã được chuẩn bị với góc nhìn thẳng và nền trong suốt để bám dáng ổn định. Nó
+không đo size, không xử lý chính xác độ rủ, che khuất tay hoặc góc xoay mạnh.
+
+## Kiểm tra và triển khai
 
 ```bash
-pnpm typecheck
 pnpm lint
+pnpm typecheck
 pnpm test
 pnpm build
+pnpm preview
 ```
 
-## Cấu trúc
-
-- `packages/ar-core`: engine TypeScript độc lập với React.
-- `apps/demo`: React/Vite UI demo.
-- `docs`: kiến trúc, tracking, coordinate, integration, test và handoff.
-
-Xem [giới hạn kỹ thuật](docs/KNOWN_LIMITATIONS.md) trước khi sử dụng như một hệ thống đo size hay fitting chính xác.
+Bản build là static và có thể đặt trên bất kỳ static host nào. Camera chỉ hoạt
+động trên `localhost` hoặc website HTTPS.

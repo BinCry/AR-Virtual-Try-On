@@ -55,7 +55,8 @@ export class GarmentRenderer {
       const goal = parentWorld.invert().multiply(desiredWorld).normalize();
       // A conservative gate avoids invalid/depth-noisy frames twisting a sleeve
       // through the body.  The next confident frame smoothly catches up.
-      if (goal.angleTo(rest) > 1.22) { target.quaternion.slerp(rest, .2); return; }
+      const angularLimit = name?.includes('upperarm') ? 1.72 : 1.4;
+      if (goal.angleTo(rest) > angularLimit) { target.quaternion.slerp(rest, .2); return; }
       target.quaternion.slerp(goal, .18);
     };
     const rotateSleeve = (target: THREE.Object3D | undefined, shoulder: number, elbow: number, direction: number) => { const a = landmarks[shoulder]; const b = landmarks[elbow]; if (!target || !a || !b) return; const angle = Math.max(-1.08, Math.min(1.08, Math.atan2(b.y-a.y,b.x-a.x) - Math.PI / 2)); target.rotation.z += (angle * direction-target.rotation.z)*.16; };

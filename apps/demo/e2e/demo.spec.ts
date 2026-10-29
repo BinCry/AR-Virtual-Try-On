@@ -57,6 +57,7 @@ test('renders raised-arm and turned-body rig fixtures without runtime errors', a
       expect(opaquePixels).toBeGreaterThan(200);
     }
     await page.locator('canvas.overlay').first().screenshot({ path: testInfo.outputPath(`${pose}.png`) });
+    await page.screenshot({ path: testInfo.outputPath(`${pose}-page.png`) });
   }
   expect(errors).toEqual([]);
 });

@@ -43,7 +43,8 @@ test('renders raised-arm and turned-body rig fixtures without runtime errors', a
     await page.locator('button.preview').click();
     await expect(page.locator('canvas.overlay').first()).toBeVisible();
     expect(await page.locator('canvas.overlay').first().evaluate((canvas) => canvas.width)).toBeGreaterThan(0);
-    for (const garment of await page.locator('button.garment').all()) {
+    const garments = await page.locator('button.garment').all();
+    for (const [index, garment] of garments.entries()) {
       await garment.click();
       await expect(page.getByTestId('asset-status')).toContainText('GLB rigged');
       const opaquePixels = await page.locator('canvas.overlay').first().evaluate((canvas) => {
@@ -55,6 +56,7 @@ test('renders raised-arm and turned-body rig fixtures without runtime errors', a
         return count;
       });
       expect(opaquePixels).toBeGreaterThan(200);
+      await page.screenshot({ path: testInfo.outputPath(`${pose}-garment-${index + 1}.png`) });
     }
     await page.locator('canvas.overlay').first().screenshot({ path: testInfo.outputPath(`${pose}.png`) });
     await page.screenshot({ path: testInfo.outputPath(`${pose}-page.png`) });

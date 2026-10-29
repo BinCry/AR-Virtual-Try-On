@@ -7,7 +7,7 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   const visible = viewport ? landmarks.map((point) => coverPoint(point, viewport)) : landmarks;
   const [leftShoulder, rightShoulder, leftHip, rightHip] = [visible[11], visible[12], visible[23], visible[24]];
   if (![leftShoulder, rightShoulder, leftHip, rightHip].every(Boolean)) return undefined;
-  const shoulderWidth = distance(leftShoulder, rightShoulder); const torsoHeight = Math.max(distance(leftShoulder, leftHip), distance(rightShoulder, rightHip));
+  const shoulderWidth = distance(leftShoulder, rightShoulder); const hipWidth = distance(leftHip, rightHip); const torsoHeight = (distance(leftShoulder, leftHip) + distance(rightShoulder, rightHip)) / 2;
   const shoulderCenter = { x: (leftShoulder.x + rightShoulder.x) / 2, y: (leftShoulder.y + rightShoulder.y) / 2 };
   const roll = Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x);
   const depthDelta = (rightShoulder.z ?? 0) - (leftShoulder.z ?? 0);
@@ -20,6 +20,7 @@ export function mapTorsoToGarment(landmarks: Landmark[], viewport?: CoverViewpor
   // The renderer's origin is the shoulder midpoint. This makes rotation happen
   // around the garment's actual hanging point rather than around its visual
   // centre, which is essential when the wearer turns or leans.
-  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - shoulderCenter.y) * 2, z: -1.2, scaleX: Math.max(.22, shoulderWidth * 2 * 1.45), scaleY: Math.max(.22, torsoHeight * 2 * 1.12), rotationZ, rotationY };
+  const torsoWidth = Math.max(shoulderWidth * 1.45, hipWidth * 1.3);
+  return { x: (shoulderCenter.x - 0.5) * 2, y: (0.5 - shoulderCenter.y) * 2, z: -1.2, scaleX: Math.max(.22, torsoWidth * 2), scaleY: Math.max(.22, torsoHeight * 2 * 1.12), rotationZ, rotationY };
 }
 export function mirrorX(x: number): number { return 1 - x; }

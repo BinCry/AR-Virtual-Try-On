@@ -26,11 +26,18 @@ export class OcclusionRenderer {
     this.context.globalCompositeOperation = 'destination-in';
     this.context.imageSmoothingEnabled = true;
     this.context.drawImage(this.maskCanvas, left, top, drawWidth, drawHeight);
-    const [leftShoulder, rightShoulder, leftHip, rightHip] = [landmarks[11], landmarks[12], landmarks[23], landmarks[24]];
+    const [leftShoulder, rightShoulder, leftHip, rightHip, leftElbow, rightElbow, leftWrist, rightWrist] = [landmarks[11], landmarks[12], landmarks[23], landmarks[24], landmarks[13], landmarks[14], landmarks[15], landmarks[16]];
     if (leftShoulder && rightShoulder && leftHip && rightHip) {
       const ls = point(leftShoulder); const rs = point(rightShoulder); const lh = point(leftHip); const rh = point(rightHip);
       this.context.globalCompositeOperation = 'destination-out';
       this.context.beginPath(); this.context.moveTo(ls.x, ls.y); this.context.lineTo(rs.x, rs.y); this.context.lineTo(rh.x, rh.y); this.context.lineTo(lh.x, lh.y); this.context.closePath(); this.context.fill();
+      // Sleeves belong to the virtual garment, so remove the real upper/lower
+      // arms from the foreground. Keep only small wrist circles in front.
+      const armWidth = Math.max(16, Math.hypot(rs.x-ls.x, rs.y-ls.y) * .19);
+      const cutArm = (shoulder: Landmark | undefined, elbow: Landmark | undefined, wrist: Landmark | undefined) => { if (!shoulder || !elbow || !wrist) return; const s = point(shoulder); const e = point(elbow); const w = point(wrist); this.context.beginPath(); this.context.lineCap = 'round'; this.context.lineJoin = 'round'; this.context.lineWidth = armWidth; this.context.moveTo(s.x,s.y); this.context.lineTo(e.x,e.y); this.context.lineTo(w.x,w.y); this.context.stroke(); };
+      cutArm(leftShoulder,leftElbow,leftWrist); cutArm(rightShoulder,rightElbow,rightWrist);
+      const restoreHand = (wrist: Landmark | undefined) => { if (!wrist) return; const w = point(wrist); this.context.save(); this.context.globalCompositeOperation = 'source-over'; this.context.beginPath(); this.context.arc(w.x,w.y,armWidth*.62,0,Math.PI*2); this.context.clip(); this.context.drawImage(video,left,top,drawWidth,drawHeight); this.context.globalCompositeOperation = 'destination-in'; this.context.drawImage(this.maskCanvas,left,top,drawWidth,drawHeight); this.context.restore(); };
+      restoreHand(leftWrist); restoreHand(rightWrist);
     }
     this.context.restore();
     return true;

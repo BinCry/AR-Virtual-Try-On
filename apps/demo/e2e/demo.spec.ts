@@ -45,7 +45,7 @@ test('renders raised-arm and turned-body rig fixtures without runtime errors', a
     expect(await page.locator('canvas.overlay').first().evaluate((canvas) => canvas.width)).toBeGreaterThan(0);
     for (const garment of await page.locator('button.garment').all()) {
       await garment.click();
-      await page.waitForTimeout(350);
+      await expect(page.getByTestId('asset-status')).toContainText('GLB rigged');
       const opaquePixels = await page.locator('canvas.overlay').first().evaluate((canvas) => {
         const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
         if (!gl) return 0;

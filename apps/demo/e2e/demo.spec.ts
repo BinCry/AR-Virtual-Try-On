@@ -6,6 +6,8 @@ test('renders local-only AR controls without requesting the camera', async ({ pa
   await expect(page.getByRole('heading', { name: 'Phòng thử đồ 3D' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Bật camera' })).toBeVisible();
   await expect(page.getByText('Không upload video, ảnh, landmark hoặc số đo.')).toBeVisible();
+  await expect(page.getByText('AUTO FIT')).toBeVisible();
+  await expect(page.getByRole('spinbutton')).toHaveCount(0);
   expect(external).toEqual([]);
 });
 

@@ -21,3 +21,28 @@ test('loads all locally bundled rigged garments in the no-camera preview', async
   await expect(page.getByText('GLB rigged đã nạp')).toBeVisible();
   await expect(page.locator('canvas').first()).toBeVisible();
 });
+
+/* Replaced by the encoding-neutral fixture below.
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  for (const pose of ['arms-up', 'turn']) {
+    await page.goto(`/?pose=${pose}`);
+    await page.getByRole('button', { name: 'Xem trÆ°á»›c máº«u 3D' }).click();
+    await expect(page.getByText('GLB rigged Ä‘Ã£ náº¡p')).toBeVisible();
+    await expect(page.locator('canvas').first()).toBeVisible();
+    await expect(page.locator('canvas').first()).toHaveJSProperty('width', expect.any(Number));
+  }
+  expect(errors).toEqual([]);
+}); */
+
+test('renders raised-arm and turned-body rig fixtures without runtime errors', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  for (const pose of ['arms-up', 'turn']) {
+    await page.goto(`/?pose=${pose}`);
+    await page.locator('button.preview').click();
+    await expect(page.locator('canvas.overlay').first()).toBeVisible();
+    expect(await page.locator('canvas.overlay').first().evaluate((canvas) => canvas.width)).toBeGreaterThan(0);
+  }
+  expect(errors).toEqual([]);
+});

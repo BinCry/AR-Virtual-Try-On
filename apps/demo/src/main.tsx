@@ -2,10 +2,29 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArSession, GARMENTS, GarmentRenderer, getCapabilityReport, type GarmentDefinition, type PerformanceMetrics, type SessionState, type TrackingStatus } from '@studio-ar/core';
 import './styles.css';
+type PreviewPose = 'neutral' | 'arms-up' | 'turn';
+const previewLandmarks = (pose: PreviewPose) => {
+  const points = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0, visibility: 1 }));
+  // Deterministic no-camera fixture for the hidden visual QA URL. It exercises
+  // both arm chains and a torso turn without collecting user data.
+  Object.assign(points[11], { x: .35, y: .34, z: pose === 'turn' ? -.18 : 0 }); Object.assign(points[12], { x: .65, y: .34, z: pose === 'turn' ? .18 : 0 });
+  Object.assign(points[23], { x: .39, y: .72, z: pose === 'turn' ? -.09 : 0 }); Object.assign(points[24], { x: .61, y: .72, z: pose === 'turn' ? .09 : 0 });
+  if (pose === 'arms-up') { Object.assign(points[13], { x: .22, y: .18 }); Object.assign(points[15], { x: .17, y: .04 }); Object.assign(points[14], { x: .78, y: .18 }); Object.assign(points[16], { x: .83, y: .04 }); }
+  else { Object.assign(points[13], { x: .27, y: .49 }); Object.assign(points[15], { x: .24, y: .65 }); Object.assign(points[14], { x: .73, y: .49 }); Object.assign(points[16], { x: .76, y: .65 }); }
+  return points;
+};
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null); const canvasRef = useRef<HTMLCanvasElement>(null); const occlusionRef = useRef<HTMLCanvasElement>(null); const sessionRef = useRef<ArSession | null>(null); const previewRef = useRef<GarmentRenderer | null>(null);
   const [state, setState] = useState<SessionState>('idle'); const [status, setStatus] = useState<TrackingStatus>({ tracked: false, inferenceMs: 0 }); const [garment, setGarment] = useState<GarmentDefinition>(GARMENTS[0]); const [metrics, setMetrics] = useState<PerformanceMetrics>(); const [assetStatus, setAssetStatus] = useState('Chưa tải asset'); const [debug, setDebug] = useState(false); const [preview, setPreview] = useState(false); const [error, setError] = useState<string>(); const capability = getCapabilityReport();
   useEffect(() => () => { sessionRef.current?.dispose(); previewRef.current?.dispose(); }, []);
+  useEffect(() => {
+    const pose = new URLSearchParams(window.location.search).get('pose');
+    if (!preview || !previewRef.current || (pose !== 'neutral' && pose !== 'arms-up' && pose !== 'turn')) return;
+    // This URL-only fixture makes arm-up and turn regression checks visual and
+    // reproducible; normal visitors never enter this code path.
+    for (let frame = 0; frame < 18; frame += 1) previewRef.current.retarget(previewLandmarks(pose));
+    previewRef.current.update({ x: 0, y: .66, z: -1.2, scaleX: .82, scaleY: .82, rotationZ: 0, rotationY: pose === 'turn' ? .55 : 0 });
+  }, [preview]);
   async function toggleCamera() { setError(undefined); if (!capability.secureContext || !capability.camera) { setError(capability.message); return; } if (state === 'starting') return; if (sessionRef.current && state === 'running') { sessionRef.current.dispose(); sessionRef.current = null; return; } if (!videoRef.current || !canvasRef.current) return; previewRef.current?.dispose(); previewRef.current = null; setPreview(false); sessionRef.current?.dispose(); const session = new ArSession(videoRef.current, new GarmentRenderer(canvasRef.current), occlusionRef.current ?? undefined); sessionRef.current = session; session.on((event) => { if (event.type === 'state' && event.state) setState(event.state); if (event.type === 'tracking' && event.status) setStatus(event.status); if (event.type === 'metrics' && event.metrics) setMetrics(event.metrics); if (event.type === 'garment-loaded' && event.garment) setAssetStatus(event.garment.validRig ? 'GLB rigged + occlusion cơ bản' : event.garment.fallback ? 'Fallback procedural' : 'Garment 3D + occlusion cơ bản'); if (event.type === 'error') setError(event.error?.message); }); try { await session.setGarment(garment); await session.start(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể khởi động AR.'); } }
   async function chooseGarment(next: GarmentDefinition) { setGarment(next); await sessionRef.current?.setGarment(next); if (previewRef.current && canvasRef.current) { await previewRef.current.setGarment(next); previewRef.current.update({ x: 0, y: .66, z: -1.2, scaleX: .82, scaleY: .82, rotationZ: 0, rotationY: 0 }); } }
   async function previewGarment() { if (!canvasRef.current || state === 'running') return; setError(undefined); previewRef.current?.dispose(); const renderer = new GarmentRenderer(canvasRef.current); previewRef.current = renderer; const box = canvasRef.current.parentElement?.getBoundingClientRect(); renderer.resize(box?.width ?? 800, box?.height ?? 600); try { const result = await renderer.setGarment(garment); renderer.update({ x: 0, y: .66, z: -1.2, scaleX: .82, scaleY: .82, rotationZ: 0, rotationY: 0 }); setAssetStatus(result.validRig ? 'GLB rigged đã nạp' : 'GLB đã nạp'); setPreview(true); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể nạp mẫu 3D.'); } }
